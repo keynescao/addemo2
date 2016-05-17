@@ -1,21 +1,32 @@
 package com.kc.supcattle;
 
+import java.io.File;
+import java.io.FileFilter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.handmark.pulltorefresh.library.ILoadingLayout;
+import com.handmark.pulltorefresh.library.PullToRefreshListView;
+
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-
-import java.io.File;
-import java.io.FileFilter;
-import java.util.ArrayList;
-import java.util.List;
+import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.SimpleAdapter;
+import android.widget.Toast;
 
 /**
  * 音乐
@@ -23,9 +34,11 @@ import java.util.List;
  */
 public class QueryFragment extends Fragment {
 
-	private TextView tipsTxt;
-	private List<String> musicList = new ArrayList<String>();
-
+	private List<Map<String,String>> musicList = new ArrayList<Map<String,String>>();
+	private PullToRefreshListView mListView;
+	private LinearLayout loadingLayout;
+	private ImageView layoutImg;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -37,8 +50,31 @@ public class QueryFragment extends Fragment {
 			Bundle savedInstanceState) {
 		View view = inflater.inflate(R.layout.main_tab2_fragment, container,false);
 
-		tipsTxt = (TextView)view.findViewById(R.id.query_txt);
+		loadingLayout = (LinearLayout)view.findViewById(R.id.loading_layout);
+		layoutImg  = (ImageView)view.findViewById(R.id.loading_img);
+		layoutImg.setAnimation(AnimationUtils.loadAnimation(getContext(),R.anim.loading));
+		mListView = (PullToRefreshListView )view.findViewById(R.id.muicListView);
+		mListView.setVisibility(View.GONE);
+		
+		mListView.setOnItemClickListener(new OnItemClickListener(){
 
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				
+				Map<String,String> data = (Map<String,String>)parent.getItemAtPosition(position);
+				Toast.makeText(getContext(), data.get("name"), Toast.LENGTH_SHORT).show();
+				
+				Intent intent = new Intent(getActivity(),MusicPlayActivity.class);
+				intent.putExtra("path", data.get("path"));
+				startActivity(intent);
+			}
+			
+		});
+		
+		ILoadingLayout  layoutlab =  mListView.getLoadingLayoutProxy(true,false);
+		layoutlab.setPullLabel("下拉刷新...");
+		layoutlab.setRefreshingLabel("加载中...");
+		layoutlab.setReleaseLabel("松开刷新...");
 
 		return view;
 	}
@@ -51,7 +87,7 @@ public class QueryFragment extends Fragment {
 		if(!path.equals("")){
 			loadMusicTask(path);
 		}else{
-			tipsTxt.setText("路径错误");
+			Toast.makeText(getContext(), "data err", Toast.LENGTH_SHORT).show();
 		}
 	}
 
@@ -60,12 +96,14 @@ public class QueryFragment extends Fragment {
 
 		public void handleMessage(Message msg) {
 
-			StringBuilder builder = new StringBuilder();
-			for(String str : musicList){
-				builder.append(str);
-				builder.append("\r\n");
-			}
-			tipsTxt.setText(builder.toString());
+			mListView.setAdapter(new SimpleAdapter(getContext(), musicList,android.R.layout.simple_list_item_2,new String[]{
+					"name","path"
+			},new int[]{
+					android.R.id.text1,
+					android.R.id.text2
+			}));
+			mListView.setVisibility(View.VISIBLE);
+			loadingLayout.setVisibility(View.GONE);
 
 		}
 	};
@@ -106,12 +144,14 @@ public class QueryFragment extends Fragment {
 			/*File []list = file.listFiles();*/
 			if(list!=null && list.length>0) {
 				for (File f : list) {
-					Log.d("==========",">>>>>>>>>>55555555>>>>>>>>"+f.canRead());
 					scanMusic(f.getAbsolutePath());
 				}
 			}
 		}else{
-			musicList.add(file.getName());
+			Map<String,String> data = new HashMap<String,String>();
+			data.put("name", file.getName());
+			data.put("path", file.getAbsolutePath());
+			musicList.add(data);
 		}
 
 	}

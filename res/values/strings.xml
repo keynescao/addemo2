@@ -8,5 +8,8 @@
     <string name="bottom_tab_down">下载</string>
     <string name="bottom_tab_msg">消息</string>
     <string name="bottom_tab_per">我</string>
-    <string name="loading">Loading...</string>
+    <string name="loading">玩命加载中&#8230;</string>
+    <string name="mplay">播放</string>    
+    <string name="mpause">暂停</string>
+    <string name="back">退出</string>
 </resources>
