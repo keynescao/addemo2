@@ -22,6 +22,7 @@ public class MusicPlayService extends Service {
 		int cmd = intent.getIntExtra("cmd", 0);
 		if(cmd == 0){
 			String cmdval = intent.getStringExtra("path");
+			Log.d("PlayServer", "==========================="+ cmdval +"===============================");
 			initPlay(cmdval);
 			
 		}else if(cmd == 1){
@@ -36,6 +37,9 @@ public class MusicPlayService extends Service {
 	private void initPlay(String path){
 		try{
 			if(mp!=null){
+				if(mp.isPlaying()){
+					mp.reset();
+				}
 				mp.setDataSource(path);
 				mp.prepare();
 				mp.start();
