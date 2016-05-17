@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
      * 初始化底部标签
      */
     private void initTab() {
-        changeLayout(0);
+        changeLayout(1);
     }
 
 

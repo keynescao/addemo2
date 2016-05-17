@@ -96,7 +96,7 @@ public class ListDataAdapter extends BaseAdapter {
             });*/
 
             bitmapUtils.display(tag.imageView,value[0]);
-
+            
             tag.imageView.setOnClickListener(new ImageView.OnClickListener(){
                 @Override
                 public void onClick(View v) {

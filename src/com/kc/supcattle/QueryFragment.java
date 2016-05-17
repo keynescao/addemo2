@@ -9,6 +9,8 @@ import java.util.Map;
 
 import com.handmark.pulltorefresh.library.ILoadingLayout;
 import com.handmark.pulltorefresh.library.PullToRefreshListView;
+import com.kc.supcattle.utils.MusicTools;
+import com.kc.supcattle.vo.Music;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -62,10 +64,10 @@ public class QueryFragment extends Fragment {
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				
 				Map<String,String> data = (Map<String,String>)parent.getItemAtPosition(position);
-				Toast.makeText(getContext(), data.get("name"), Toast.LENGTH_SHORT).show();
+				//Toast.makeText(getContext(), data.get("name"), Toast.LENGTH_SHORT).show();
 				
 				Intent intent = new Intent(getActivity(),MusicPlayActivity.class);
-				intent.putExtra("path", data.get("path"));
+				intent.putExtra("mid", data.get("mid"));
 				startActivity(intent);
 			}
 			
@@ -75,13 +77,13 @@ public class QueryFragment extends Fragment {
 		layoutlab.setPullLabel("下拉刷新...");
 		layoutlab.setRefreshingLabel("加载中...");
 		layoutlab.setReleaseLabel("松开刷新...");
-
+		
+		loadMuslic();
+		
 		return view;
 	}
 
-	@Override
-	public void onStart() {
-		super.onStart();
+	private void loadMuslic(){
 		Log.d("============","==============start=============");
 		String path = getSdCardPath();
 		if(!path.equals("")){
@@ -91,16 +93,16 @@ public class QueryFragment extends Fragment {
 		}
 	}
 
-
 	Handler handler = new Handler(){
 
 		public void handleMessage(Message msg) {
 
-			mListView.setAdapter(new SimpleAdapter(getContext(), musicList,android.R.layout.simple_list_item_2,new String[]{
-					"name","path"
+			mListView.setAdapter(new SimpleAdapter(getContext(), musicList,R.layout.music_item,new String[]{
+					"name","artist","duration"
 			},new int[]{
-					android.R.id.text1,
-					android.R.id.text2
+					R.id.music_name,
+					R.id.music_artist,
+					R.id.music_duration
 			}));
 			mListView.setVisibility(View.VISIBLE);
 			loadingLayout.setVisibility(View.GONE);
@@ -112,7 +114,18 @@ public class QueryFragment extends Fragment {
 	private void loadMusicTask(final String path){
 		new Thread(){
 			public void run() {
-				scanMusic(path);
+				if(MusicTools.musicList.size()==0){
+					MusicTools.scanMusic(getContext());
+				}
+				for(Music m : MusicTools.musicList){
+					Map<String,String> data = new HashMap<String,String>();
+					data.put("name", m.getDisplayName());
+					data.put("artist", m.getArtist());
+					data.put("duration", MusicTools.getDuration(m.getDuration()));
+					data.put("mid", String.valueOf(m.getId()));
+					musicList.add(data);
+				}			
+				
 				handler.sendEmptyMessage(0);
 
 			}
