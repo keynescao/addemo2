@@ -24,6 +24,16 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		mPauseBtn.setOnClickListener(this);
 		mBackBtn.setOnClickListener(this);
 		
+		initPlayService();
+		
+	}
+	
+	private void initPlayService(){
+		String path = getIntent().getStringExtra("path");
+		Intent intentmusic = new Intent(this,MusicPlayService.class);
+		intentmusic.putExtra("cmd", 0);
+		intentmusic.putExtra("path", path);
+		startService(intentmusic);		
 	}
 	
 	@Override
@@ -51,11 +61,7 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 	@Override
 	protected void onStart() {
 		super.onStart();		
-		String path = getIntent().getStringExtra("path");
-		Intent intentmusic = new Intent(this,MusicPlayService.class);
-		intentmusic.putExtra("cmd", 0);
-		intentmusic.putExtra("path", path);
-		startService(intentmusic);		
+		
 	}
 	
 	
