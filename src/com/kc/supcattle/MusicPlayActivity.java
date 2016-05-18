@@ -2,7 +2,10 @@ package com.kc.supcattle;
 
 import com.kc.supcattle.service.MusicPlayService;
 import com.kc.supcattle.utils.MusicTools;
+import com.kc.supcattle.utils.StringUtil;
 import com.kc.supcattle.vo.Music;
+import com.kc.supcattle.wedgit.LrcView;
+import com.lidroid.xutils.BitmapUtils;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -10,21 +13,28 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MusicPlayActivity extends Activity implements OnClickListener{
 	
 	private ImageView mPlayBtn,mNextBtn,mPrevBtn;
-	private ImageView musicImg;
 	private TextView  musicTitle,musicLte,musicRte;
 	private SeekBar   musicSeekBar;
+	private LinearLayout playback;
+	private BitmapUtils bitmapUtil;
+	private LrcView mLrc;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -33,16 +43,23 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		mPlayBtn = (ImageView)findViewById(R.id.music_play);
 		mNextBtn  = (ImageView)findViewById(R.id.music_next);
 		mPrevBtn = (ImageView)findViewById(R.id.music_prev);
-		musicImg  = (ImageView)findViewById(R.id.music_img);
 		musicTitle = (TextView)findViewById(R.id.music_title);
 		musicLte = (TextView)findViewById(R.id.music_lte);
 		musicRte = (TextView)findViewById(R.id.music_rte);
 		musicSeekBar = (SeekBar)findViewById(R.id.music_seekbar);
-
+		playback = (LinearLayout)findViewById(R.id.playback);
+		mLrc = (LrcView)findViewById(R.id.music_lrc);
+		
+		
 		mPlayBtn.setOnClickListener(this);
 		mNextBtn.setOnClickListener(this);
 		mPrevBtn.setOnClickListener(this);
 		
+		bitmapUtil = new BitmapUtils(this);
+		bitmapUtil.configDefaultLoadingImage(R.drawable.bg);
+		bitmapUtil.configDefaultLoadFailedImage(R.drawable.bg);
+		
+		Log.d("PALY_TAG", "=================================PALY_CREATE====================================");
 		
 		musicSeekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
 			
@@ -61,15 +78,15 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 			
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-				musicLte.setText(MusicTools.getDuration(progress));		
+				musicLte.setText(MusicTools.getDuration(progress));	
+				mLrc.changeCurrent(progress);
 			}
 		});
 		
-		handler.postDelayed(updateAction,1000);
-				
+		handler.postDelayed(updateAction,1000);				
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(MusicTools.MUSIC_BORDCAST);
-		registerReceiver(receiver, filter);
+		registerReceiver(receiver, filter);		
 		
 		initPlayService();
 		
@@ -83,17 +100,30 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 	};
 	
 	Handler handler = new Handler(){
-		public void handleMessage(android.os.Message msg) {
-			
-			int progress = musicSeekBar.getProgress() + 1000;
-			if(musicSeekBar.getMax() < progress){
-				progress = musicSeekBar.getMax();
-				musicSeekBar.setProgress(progress);
-			}else{
-				musicSeekBar.setProgress(progress);
-				handler.postDelayed(updateAction, 1000);
+		public void handleMessage(android.os.Message msg) {			
+			if(msg.what == 1){
+				Log.d("PALY_MUSIC","==============="+ msg.obj);
+				String path = String.valueOf(msg.obj);
+				if(!path.equals(StringUtil.ERR_FLAG)){
+					Bitmap bitmap = BitmapFactory.decodeFile(String.valueOf(msg.obj));
+					playback.setBackgroundDrawable(new BitmapDrawable(bitmap));
+				}
+			}else if(msg.what == 2){
+				String path = String.valueOf(msg.obj);
+				if(!path.equals(StringUtil.ERR_FLAG)){
+					try {
+						Log.d("PALY_MUSIC_LRC","==============="+ msg.obj);
+						int err = mLrc.setLrcPath(String.valueOf(msg.obj));
+						if(err > 0){
+							Toast.makeText(MusicPlayActivity.this, "歌词不准确-来自网络", Toast.LENGTH_SHORT).show();
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}else{
+					Toast.makeText(MusicPlayActivity.this, "未找到合适的歌词", Toast.LENGTH_SHORT).show();
+				}
 			}
-			musicLte.setText(MusicTools.getDuration(progress));
 		};
 	};
 	
@@ -105,7 +135,6 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		Intent intentmusic = new Intent(this,MusicPlayService.class);
 		intentmusic.putExtra("cmd", 0);
 		intentmusic.putExtra("mid", mid);
-
 		startService(intentmusic);		
 	}
 	
@@ -118,24 +147,32 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 				int progress = intent.getIntExtra("seek", 0);
 				musicLte.setText(MusicTools.getDuration(progress));
 				musicSeekBar.setProgress(progress);
+				mLrc.changeCurrent(progress);
 			}
 		}
 	};
 	
+	private void changeSong(int flag){
+		mPlayBtn.setImageResource(R.drawable.ic_pause);
+		Intent intentmusic = new Intent(this,MusicPlayService.class);
+		intentmusic.putExtra("cmd", flag);
+		startService(intentmusic);
+	}
 	
+	@SuppressWarnings("deprecation")
 	private void changeSongDetail(String mid){
 		Music music = MusicTools.getMusic(mid);
 		Bitmap bitmap = MusicTools.getAlbumBitmap(this,music.getAlbumId());
 		if(bitmap !=null){
-			musicImg.setImageBitmap(bitmap);
+			playback.setBackgroundDrawable(new BitmapDrawable(bitmap));;
 		}else{
-			musicImg.setImageResource(R.drawable.m3img);
+			MusicTools.getAlbumPicFromNet(music.getTitle(), handler);
 		}
 		musicTitle.setText(music.getTitle());
 		musicSeekBar.setMax(music.getDuration());
 		musicSeekBar.incrementProgressBy(music.getDuration()/1000);
 		musicSeekBar.setProgress(0);
-		
+
 		musicLte.setText("00:00");
 		musicRte.setText(MusicTools.getDuration(music.getDuration()));
 	}
@@ -149,12 +186,6 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 			mPlayBtn.setImageResource(R.drawable.ic_start);
 			intentmusic.putExtra("cmd", 2);
 		}
-		startService(intentmusic);
-	}
-	
-	private void changeSong(int flag){
-		Intent intentmusic = new Intent(this,MusicPlayService.class);
-		intentmusic.putExtra("cmd", flag);
 		startService(intentmusic);
 	}
 	
@@ -185,4 +216,7 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 			stopService(intentmusic);
 		}
 	}
+	
+	
+	
 }

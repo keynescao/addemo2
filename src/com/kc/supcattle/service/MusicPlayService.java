@@ -16,6 +16,7 @@ public class MusicPlayService extends Service {
 	
 	private MediaPlayer mp;
 	private String currentMid;
+	private boolean TASK_RUN = true;
 	
 	@Override
 	public void onCreate() {
@@ -45,6 +46,7 @@ public class MusicPlayService extends Service {
 				return true;
 			}
 		});
+		new Thread(updateSeek).start();
 	}
 	
 	private void changeSong(int flag){
@@ -126,6 +128,24 @@ public class MusicPlayService extends Service {
 		MusicTools.CURRENT_PLAYING = 0;
 	}
 	
+	Runnable updateSeek = new Runnable() {
+		public void run() {
+			while(true){
+				if(mp.isPlaying()){
+					Intent msg = new Intent(MusicTools.MUSIC_BORDCAST);
+					msg.putExtra("cmd", 1);
+					msg.putExtra("seek", mp.getCurrentPosition());
+					sendBroadcast(msg);
+				}
+				try {
+					Thread.sleep(900);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				if(!TASK_RUN)break;
+			}			
+		}
+	};
 	
 	@Override
 	public void onDestroy() {
@@ -136,6 +156,7 @@ public class MusicPlayService extends Service {
 			mp.release();
 		}
 		MusicTools.CURRENT_PLAYING = 0;
+		TASK_RUN = false;
 		stopSelf();
 	}
 
