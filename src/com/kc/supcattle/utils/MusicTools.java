@@ -111,10 +111,13 @@ public class MusicTools {
 	}
 	
 	public static Music getMusic(int idx){
-		if((idx +1 ) <= musicList.size()){
-			return musicList.get(idx);
+		int len = musicList.size();
+		if((idx +1 ) > len){			
+			idx = 0;
+		}else if(idx < 0){
+			idx = len - 1;
 		}
-		return null;
+		return musicList.get(idx);
 	}
 	
 	public static int getCurrentPlayIdx(String musicId) {
@@ -164,7 +167,7 @@ public class MusicTools {
 		
 		boolean picExists = false,lrcExists = false;
 		
-		String fileName = m.getHashCode() + ".jpg";		
+		String fileName = m.getHashCode() + ".jpg";	
 		String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath().concat(MUSIC_ALBUM_DIR);
 		String picPath = rootDir.concat("/").concat(fileName);
 		File file = new File(picPath);

@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener{
         }
 
         tabFrgment[0] = new HomeFragment();
-        tabFrgment[1] = new QueryFragment();
+        tabFrgment[1] = new MusicFragment();
         tabFrgment[2] = new DownFragment();
         tabFrgment[3] = new MsgFragment();
         tabFrgment[4] = new PersonFragment();

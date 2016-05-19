@@ -33,7 +33,7 @@ import android.widget.SimpleAdapter;
  * 音乐
  *
  */
-public class QueryFragment extends Fragment {
+public class MusicFragment extends Fragment {
 
 	private List<Map<String,String>> musicList = new ArrayList<Map<String,String>>();
 	private PullToRefreshListView mListView;
@@ -96,15 +96,15 @@ public class QueryFragment extends Fragment {
 
 	static class MsgHandler extends Handler{
 		
-		WeakReference<QueryFragment> weekReference;
+		WeakReference<MusicFragment> weekReference;
 
-		public MsgHandler(QueryFragment fragment){
-			this.weekReference = new WeakReference<QueryFragment>(fragment);
+		public MsgHandler(MusicFragment fragment){
+			this.weekReference = new WeakReference<MusicFragment>(fragment);
 		}
 			
 		public void handleMessage(Message msg) {
 			
-			QueryFragment t = weekReference.get();
+			MusicFragment t = weekReference.get();
 			if(t==null)return;
 			
 			t.simpleAdatper = new SimpleAdapter(t.getContext(), t.musicList,R.layout.music_item,new String[]{

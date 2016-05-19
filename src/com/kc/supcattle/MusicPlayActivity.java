@@ -29,6 +29,10 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
+/**
+ * @author keynes
+ * 播放音乐
+ */
 public class MusicPlayActivity extends Activity implements OnClickListener{
 	
 	private ImageView mPlayBtn,mNextBtn,mPrevBtn;
@@ -123,10 +127,10 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 				String path = String.valueOf(msg.obj);
 				if(!path.equals(StringUtil.ERR_FLAG)){
 					Bitmap bitmap = BitmapFactory.decodeFile(String.valueOf(msg.obj));
-					act.playback.setBackgroundDrawable(new BitmapDrawable(bitmap));
+					act.playback.setBackground(new BitmapDrawable(act.getResources(),bitmap));
+					
+					
 					//act.playback.setBackground(background);
-				}else{
-					act.playback.setBackgroundResource(R.drawable.bg);
 				}
 			}else if(msg.what == 2){
 				String path = String.valueOf(msg.obj);
@@ -181,7 +185,6 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		
 		Music music = MusicTools.getMusic(mid);
 		mLrc.clearLrcText();
-		MusicTools.displayAlbumAndLrc(music, handler);
 		musicTitle.setText(music.getTitle());
 		musicSeekBar.setMax(music.getDuration());
 		musicSeekBar.incrementProgressBy(music.getDuration()/1000);
@@ -189,6 +192,14 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 
 		musicLte.setText("00:00");
 		musicRte.setText(MusicTools.getDuration(music.getDuration()));
+		
+		//先读取内置图片，读不到则从网络取
+		Bitmap bitmap = MusicTools.getAlbumBitmap(this,music.getAlbumId());
+ 		if(bitmap !=null){
+			playback.setBackground(new BitmapDrawable(getResources(),bitmap));;
+ 		}else{
+ 			MusicTools.displayAlbumAndLrc(music, handler);
+ 		}
 	}
 	
 	private void play(){
