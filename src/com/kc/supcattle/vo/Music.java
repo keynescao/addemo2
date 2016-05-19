@@ -11,6 +11,7 @@ public class Music {
 	private String displayName;
 	private int duration;
 	private int size;
+	private int hashCode;
 	
 	
 	public int getId() {
@@ -66,6 +67,13 @@ public class Music {
 	}
 	public void setSize(int size) {
 		this.size = size;
+	}
+		
+	public int getHashCode() {
+		return this.url.hashCode();
+	}
+	public void setHashCode(int hashCode) {
+		this.hashCode = hashCode;
 	}
 	@Override
 	public String toString() {

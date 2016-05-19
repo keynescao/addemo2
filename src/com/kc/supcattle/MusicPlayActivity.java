@@ -1,5 +1,7 @@
 package com.kc.supcattle;
 
+import java.lang.ref.WeakReference;
+
 import com.kc.supcattle.service.MusicPlayService;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.utils.StringUtil;
@@ -35,11 +37,15 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 	private LinearLayout playback;
 	private BitmapUtils bitmapUtil;
 	private LrcView mLrc;
+	private Handler handler;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.music_layout);	
+		setContentView(R.layout.music_layout);
+		
+		handler = new PlayHandler(this);
+		
 		mPlayBtn = (ImageView)findViewById(R.id.music_play);
 		mNextBtn  = (ImageView)findViewById(R.id.music_next);
 		mPrevBtn = (ImageView)findViewById(R.id.music_prev);
@@ -82,8 +88,7 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 				mLrc.changeCurrent(progress);
 			}
 		});
-		
-		handler.postDelayed(updateAction,1000);				
+					
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(MusicTools.MUSIC_BORDCAST);
 		registerReceiver(receiver, filter);		
@@ -92,36 +97,48 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		
 	}
 	
-	Runnable updateAction = new Runnable(){
-		@Override
-		public void run() {
-			handler.sendEmptyMessage(0);			
-		}
-	};
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		Log.d("TEST","TEST");
+		
+	}
 	
-	Handler handler = new Handler(){
-		public void handleMessage(android.os.Message msg) {			
+	static class PlayHandler extends Handler{
+		
+		WeakReference<MusicPlayActivity> weakRefrence;
+		
+		public PlayHandler(MusicPlayActivity activity){
+			this.weakRefrence = new WeakReference<MusicPlayActivity>(activity);
+		}
+
+		public void handleMessage(android.os.Message msg) {
+			
+			MusicPlayActivity act = this.weakRefrence.get();
+			if(act == null)return;
+			
 			if(msg.what == 1){
 				Log.d("PALY_MUSIC","==============="+ msg.obj);
 				String path = String.valueOf(msg.obj);
 				if(!path.equals(StringUtil.ERR_FLAG)){
 					Bitmap bitmap = BitmapFactory.decodeFile(String.valueOf(msg.obj));
-					playback.setBackgroundDrawable(new BitmapDrawable(bitmap));
+					act.playback.setBackgroundDrawable(new BitmapDrawable(bitmap));
+					//act.playback.setBackground(background);
+				}else{
+					act.playback.setBackgroundResource(R.drawable.bg);
 				}
 			}else if(msg.what == 2){
 				String path = String.valueOf(msg.obj);
 				if(!path.equals(StringUtil.ERR_FLAG)){
 					try {
 						Log.d("PALY_MUSIC_LRC","==============="+ msg.obj);
-						int err = mLrc.setLrcPath(String.valueOf(msg.obj));
-						if(err > 0){
-							Toast.makeText(MusicPlayActivity.this, "歌词不准确-来自网络", Toast.LENGTH_SHORT).show();
-						}
+						act.mLrc.setLrcPath(String.valueOf(msg.obj));
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}else{
-					Toast.makeText(MusicPlayActivity.this, "未找到合适的歌词", Toast.LENGTH_SHORT).show();
+					Toast.makeText(act, "未找到合适的歌词", Toast.LENGTH_SHORT).show();
 				}
 			}
 		};
@@ -159,15 +176,12 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		startService(intentmusic);
 	}
 	
-	@SuppressWarnings("deprecation")
+
 	private void changeSongDetail(String mid){
+		
 		Music music = MusicTools.getMusic(mid);
-		Bitmap bitmap = MusicTools.getAlbumBitmap(this,music.getAlbumId());
-		if(bitmap !=null){
-			playback.setBackgroundDrawable(new BitmapDrawable(bitmap));;
-		}else{
-			MusicTools.getAlbumPicFromNet(music.getTitle(), handler);
-		}
+		mLrc.clearLrcText();
+		MusicTools.displayAlbumAndLrc(music, handler);
 		musicTitle.setText(music.getTitle());
 		musicSeekBar.setMax(music.getDuration());
 		musicSeekBar.incrementProgressBy(music.getDuration()/1000);

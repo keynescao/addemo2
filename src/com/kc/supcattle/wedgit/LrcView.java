@@ -103,6 +103,11 @@ public class LrcView extends View {
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
 		if (mLrcs.isEmpty() || mTimes.isEmpty()) {
+			
+			canvas.save();
+			canvas.clipRect(0, 0, mViewWidth, mLrcHeight);
+			canvas.restore();
+			
 			return;
 		}
 
@@ -197,13 +202,18 @@ public class LrcView extends View {
 		}
 	}
 
-	// 外部提供方法
-	// 设置lrc的路径
-	public int setLrcPath(String path) throws Exception {
+	public void clearLrcText(){
 		mLrcs.clear();
 		mTimes.clear();
 		mNextTime = 0L;
 		mCurrentLine = 0;
+		postInvalidate();
+	}
+	
+	// 外部提供方法
+	// 设置lrc的路径
+	public int setLrcPath(String path) throws Exception {
+		//clearLrcText();
 		File file = new File(path);
 		if (!file.exists()) {
 			throw new Exception("lrc not found...");

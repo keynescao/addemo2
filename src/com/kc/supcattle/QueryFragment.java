@@ -1,20 +1,19 @@
 package com.kc.supcattle;
 
-import java.io.File;
-import java.io.FileFilter;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.handmark.pulltorefresh.library.ILoadingLayout;
+import com.handmark.pulltorefresh.library.PullToRefreshBase;
 import com.handmark.pulltorefresh.library.PullToRefreshListView;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.vo.Music;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.Fragment;
@@ -27,8 +26,8 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.SimpleAdapter;
-import android.widget.Toast;
 
 /**
  * 音乐
@@ -40,10 +39,14 @@ public class QueryFragment extends Fragment {
 	private PullToRefreshListView mListView;
 	private LinearLayout loadingLayout;
 	private ImageView layoutImg;
+	private SimpleAdapter simpleAdatper;
+	private Handler handler;
+	private static boolean isRefreshList = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		handler = new MsgHandler(this);
 	}
 	
 	
@@ -64,7 +67,6 @@ public class QueryFragment extends Fragment {
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 				
 				Map<String,String> data = (Map<String,String>)parent.getItemAtPosition(position);
-				//Toast.makeText(getContext(), data.get("name"), Toast.LENGTH_SHORT).show();
 				
 				Intent intent = new Intent(getActivity(),MusicPlayActivity.class);
 				intent.putExtra("mid", data.get("mid"));
@@ -73,59 +75,72 @@ public class QueryFragment extends Fragment {
 			
 		});
 		
+		mListView.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener<ListView>(){
+
+			@Override
+			public void onRefresh(PullToRefreshBase<ListView> refreshView) {
+				isRefreshList = true;
+				loadMusicTask();				
+			}
+		});
+		
 		ILoadingLayout  layoutlab =  mListView.getLoadingLayoutProxy(true,false);
 		layoutlab.setPullLabel("下拉刷新...");
 		layoutlab.setRefreshingLabel("加载中...");
 		layoutlab.setReleaseLabel("松开刷新...");
 		
-		loadMuslic();
+		loadMusicTask();
 		
 		return view;
 	}
 
-	private void loadMuslic(){
-		Log.d("============","==============start=============");
-		String path = getSdCardPath();
-		if(!path.equals("")){
-			loadMusicTask(path);
-		}else{
-			Toast.makeText(getContext(), "data err", Toast.LENGTH_SHORT).show();
+	static class MsgHandler extends Handler{
+		
+		WeakReference<QueryFragment> weekReference;
+
+		public MsgHandler(QueryFragment fragment){
+			this.weekReference = new WeakReference<QueryFragment>(fragment);
 		}
-	}
-
-	Handler handler = new Handler(){
-
+			
 		public void handleMessage(Message msg) {
-
-			mListView.setAdapter(new SimpleAdapter(getContext(), musicList,R.layout.music_item,new String[]{
+			
+			QueryFragment t = weekReference.get();
+			if(t==null)return;
+			
+			t.simpleAdatper = new SimpleAdapter(t.getContext(), t.musicList,R.layout.music_item,new String[]{
 					"name","artist","duration"
 			},new int[]{
 					R.id.music_name,
 					R.id.music_artist,
 					R.id.music_duration
-			}));
-			mListView.setVisibility(View.VISIBLE);
-			loadingLayout.setVisibility(View.GONE);
-
+			});
+			
+			t.mListView.setAdapter(t.simpleAdatper);
+			t.mListView.setVisibility(View.VISIBLE);
+			t.loadingLayout.setVisibility(View.GONE);
+			t.mListView.onRefreshComplete();
+			isRefreshList = false;
 		}
+		
 	};
 
 
-	private void loadMusicTask(final String path){
+	private void loadMusicTask(){
+		Log.d("====SCAN MUSIC====", Thread.currentThread().getName());
 		new Thread(){
 			public void run() {
-				if(MusicTools.musicList.size()==0){
+				if(MusicTools.musicList.size()==0 || isRefreshList == true){
 					MusicTools.scanMusic(getContext());
-				}
+				}				
+				musicList.clear();
 				for(Music m : MusicTools.musicList){
 					Map<String,String> data = new HashMap<String,String>();
-					data.put("name", m.getDisplayName());
+					data.put("name", m.getTitle());
 					data.put("artist", m.getArtist());
 					data.put("duration", MusicTools.getDuration(m.getDuration()));
 					data.put("mid", String.valueOf(m.getId()));
 					musicList.add(data);
-				}			
-				
+				}
 				handler.sendEmptyMessage(0);
 
 			}
@@ -134,7 +149,7 @@ public class QueryFragment extends Fragment {
 
 
 
-	private void scanMusic(String path){
+	/*private void scanMusic(String path){
 		File file = new File(path);
 
 		Log.d("==========",">>>>>>>>>>>>>>>>>>"+file.exists()+"=============="+file.canRead());
@@ -154,7 +169,7 @@ public class QueryFragment extends Fragment {
 					}
 				}
 			});
-			/*File []list = file.listFiles();*/
+			File []list = file.listFiles();
 			if(list!=null && list.length>0) {
 				for (File f : list) {
 					scanMusic(f.getAbsolutePath());
@@ -169,11 +184,11 @@ public class QueryFragment extends Fragment {
 
 	}
 
-	/**
+	*//**
 	 * 获取SD卡根目录路径
 	 *
 	 * @return
-	 */
+	 *//*
 	private String getSdCardPath() {
 		boolean exist = isSdCardExist();
 		String sdpath = "";
@@ -187,14 +202,14 @@ public class QueryFragment extends Fragment {
 
 	}
 
-	/**
+	*//**
 	 * 判断SDCard是否存在 [当没有外挂SD卡时，内置ROM也被识别为存在sd卡]
 	 *
 	 * @return
-	 */
+	 *//*
 	private boolean isSdCardExist() {
 		return Environment.getExternalStorageState().equals(
 				Environment.MEDIA_MOUNTED);
-	}
+	}*/
 	
 }

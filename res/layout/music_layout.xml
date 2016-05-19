@@ -55,10 +55,14 @@
 	        android:id="@+id/music_seekbar"
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
+	        android:layout_centerInParent="true"
 	        android:layout_toStartOf="@+id/music_rte"
 	        android:layout_toEndOf="@+id/music_lte"
 	        android:progressDrawable="@drawable/seekbar_style"
-	        android:maxHeight="5dip" 
+	        android:thumbOffset="3dp"
+	        android:maxHeight="2dip" 
+	        android:minHeight="2dip"
+	        
 	    />
         
         <TextView 

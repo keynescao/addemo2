@@ -59,6 +59,7 @@ public class MusicTools {
 		
 		if(cursor!=null && cursor.moveToFirst()){
 			musicList.clear();
+			idxMap.clear();
 			int index = 0;
 			try{
 				do{
@@ -159,137 +160,137 @@ public class MusicTools {
 		return bitmap;
 	}
 	
+	public static void displayAlbumAndLrc(final Music m,final Handler handler){
+		
+		boolean picExists = false,lrcExists = false;
+		
+		String fileName = m.getHashCode() + ".jpg";		
+		String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath().concat(MUSIC_ALBUM_DIR);
+		String picPath = rootDir.concat("/").concat(fileName);
+		File file = new File(picPath);
+		if(file.exists()){
+			handler.obtainMessage(1, picPath).sendToTarget();
+			picExists = true;
+		}
+		
+		fileName = m.getHashCode()+".lrc";			
+		rootDir = Environment.getExternalStorageDirectory().getAbsolutePath().concat(MUSIC_LRC_DIR);
+		String lrcPath = rootDir.concat("/").concat(fileName);
+		file = new File(lrcPath);
+		if(file.exists()){
+			handler.obtainMessage(2, lrcPath).sendToTarget();
+			lrcExists = true;
+		}
+		if(!picExists || !lrcExists){
+			downloadNetMusicDet(m,lrcPath,picPath,lrcExists,picExists,handler);
+		}
+	}
+
 	
-	public static void getAlbumPicFromNet(String songName,final Handler handler){
+	private static void downloadNetMusicDet(Music m,final String lrcTarget,final String picTarget,final boolean lrcExists,
+			final boolean picExists,final Handler handler){
 		HttpUtils http = new HttpUtils();
 		try{
-			String url = MUSIC_NET_GET_URL.concat("&query=") + URLEncoder.encode(songName,"UTF-8");
+			String url = MUSIC_NET_GET_URL.concat("&query=") + URLEncoder.encode(m.getTitle(),"UTF-8");
+			Log.d("MUSIC_GET_NET_DETAIL", "=============="+url);
+			http.send(HttpMethod.GET, url, new RequestCallBack<String>() {
+				public void onSuccess(ResponseInfo<String> responseInfo) {
+					String result = responseInfo.result;				
+					try{
+						JSONObject json = new JSONObject(result);
+						JSONArray songlist = json.getJSONArray("song_list");						
+						if(!lrcExists){
+							String lrcUrl = songlist.getJSONObject(0).getString("lrclink");
+							if(!StringUtil.isEmpty(lrcUrl)){
+								downloadMusicFile(lrcUrl,lrcTarget,2,handler);
+							}else{
+								handler.obtainMessage(2, "err").sendToTarget();
+							}
+						}						
+						//Pic
+						if(!picExists){
+							String songid = songlist.getJSONObject(0).getString("song_id");
+							Log.d("MUSIC_GET_SONGID", "========================="+ songid +"==========================");
+							if(!StringUtil.isEmpty(songid)){
+								getSongAlbumPic(songid,picTarget,handler);
+							}else{
+								handler.obtainMessage(1, "err").sendToTarget();
+							}
+						}
+					}catch(Exception ex){
+						if(!lrcExists)handler.obtainMessage(2, "err").sendToTarget();						
+						if(!picExists)handler.obtainMessage(1, "err").sendToTarget();
+						Log.e("MUSIC_GET_SONGID", ex +"==========================");
+					}
+				}
+				public void onFailure(HttpException err, String msg) {
+					if(!lrcExists)handler.obtainMessage(2, "err").sendToTarget();						
+					if(!picExists)handler.obtainMessage(1, "err").sendToTarget();
+					Log.d("MUSIC_GET_SONG_DETAIL", "==============GET SONG_INFO FAILED==========="+ msg +"==========================");
+				}			
+			});
+		}catch(Exception ex){
+			if(!lrcExists)handler.obtainMessage(2, "err").sendToTarget();						
+			if(!picExists)handler.obtainMessage(1, "err").sendToTarget();
+		}
+	}
+	
+	
+	private static void getSongAlbumPic(String songId,final String target,final Handler handler){
+		
+		HttpUtils http = new HttpUtils();
+		try{			
+			String url = MUSIC_GET_SONG_DETAIL.concat("&songid=") + songId;
 			Log.d("MUSIC_UTILS", "=============="+url);
 			http.send(HttpMethod.GET, url, new RequestCallBack<String>() {
 				public void onSuccess(ResponseInfo<String> responseInfo) {
 					String result = responseInfo.result;
 					try{
 						JSONObject json = new JSONObject(result);
-						JSONArray songlist = json.getJSONArray("song_list");
-						String songid = songlist.getJSONObject(0).getString("song_id");
-						Log.d("MUSIC_GET_SONGID", "========================="+ songid +"==========================");
-						getSongAlbumPic(songid,handler);
-						
-						String lrcUrl = songlist.getJSONObject(0).getString("lrclink");
-						if(!StringUtil.isEmpty(lrcUrl)){
-							getMusicLrc(lrcUrl,handler);
-						}else{
-							handler.obtainMessage(2, "err").sendToTarget();
+						JSONObject detail = json.getJSONObject("songinfo");
+						String picUrl = detail.getString("artist_480_800");	
+						if(picUrl == null || "".equals(picUrl)){
+							picUrl = detail.getString("artist_500_500");	
 						}
-						
+						Log.d("MUSIC_GET_SONGID", "========================="+ picUrl +"==========================");
+						downloadMusicFile(picUrl,target,1,handler);
 					}catch(Exception ex){
-						ex.printStackTrace();
+						handler.obtainMessage(1, "err").sendToTarget();
 					}
 				}
 				public void onFailure(HttpException err, String msg) {
-					Log.d("MUSIC_GET_SONGID", "==============GET SONG_ID FAILED==========="+ msg +"==========================");
+					handler.obtainMessage(1, "err").sendToTarget();
+					Log.d("MUSIC_GET_SONGID", "==============GET SONG_PIC FAILED==========="+ msg +"==========================");
 				}			
 			});
+
 		}catch(Exception ex){
-			ex.printStackTrace();
+			handler.obtainMessage(1, "err").sendToTarget();
 		}
 	}
 	
 	
-	private static void getSongAlbumPic(String songId,final Handler handler){
-		
-		HttpUtils http = new HttpUtils();
-		try{			
-			String fileName = songId + ".jpg";		
-			String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath().concat(MUSIC_ALBUM_DIR);
-			final String filePath = rootDir.concat("/").concat(fileName);
-			File file = new File(filePath);
-			if(file.exists()){
-				handler.obtainMessage(1, filePath).sendToTarget();
-			}else{
-				String url = MUSIC_GET_SONG_DETAIL.concat("&songid=") + songId;
-				Log.d("MUSIC_UTILS", "=============="+url);
-				http.send(HttpMethod.GET, url, new RequestCallBack<String>() {
-					public void onSuccess(ResponseInfo<String> responseInfo) {
-						String result = responseInfo.result;
-						try{
-							JSONObject json = new JSONObject(result);
-							JSONObject detail = json.getJSONObject("songinfo");
-							String picUrl = detail.getString("artist_480_800");	
-							if(picUrl == null || "".equals(picUrl)){
-								picUrl = detail.getString("artist_500_500");	
-							}
-							Log.d("MUSIC_GET_SONGID", "========================="+ picUrl +"==========================");
-							downloadAlbumPic(picUrl,filePath,handler);
-						}catch(Exception ex){
-							ex.printStackTrace();
-						}
-					}
-					public void onFailure(HttpException err, String msg) {
-						Log.d("MUSIC_GET_SONGID", "==============GET SONG_PIC FAILED==========="+ msg +"==========================");
-					}			
-				});
-			}
-		}catch(Exception ex){
-			ex.printStackTrace();
-		}
-	}
-	
-	private static void downloadAlbumPic(String url,String target,final Handler handler){
-		HttpUtils http = new HttpUtils();
-		http.download(url, target,true, new RequestCallBack<File>() {
-			@Override
-			public void onSuccess(ResponseInfo<File> resp) {
-				handler.obtainMessage(1, resp.result.getAbsoluteFile()).sendToTarget();
-			}			
-			@Override
-			public void onFailure(HttpException err, String errMsg) {
-				handler.obtainMessage(1, "err").sendToTarget();
-				Log.d("MUSIC_GET_PIC", "==============GET SONG_PIC DOWNLOAD FAILED==========="+ errMsg +"==========================");
-			}
-		});
-	}
-	
-	
-	public static void getMusicLrc(String url,final Handler handler){
+	private static void downloadMusicFile(String url,String target,final int flag,final Handler handler){
 		HttpUtils http = new HttpUtils();
 		try{
-			
-			String fileName = getFileName(url);			
-			String rootDir = Environment.getExternalStorageDirectory().getAbsolutePath().concat(MUSIC_LRC_DIR);
-			String filePath = rootDir.concat("/").concat(fileName);
-			File file = new File(filePath);
-			if(file.exists()){
-				handler.obtainMessage(2, filePath).sendToTarget();
-			}else{
-				if(url.indexOf("http")==-1){
-					url =  MUSIC_SOURCE_NET + url;
-				}
-				http.download(url, filePath,true, new RequestCallBack<File>() {
-					@Override
-					public void onSuccess(ResponseInfo<File> resp) {
-						handler.obtainMessage(2, resp.result.getAbsoluteFile()).sendToTarget();
-					}
-					
-					@Override
-					public void onFailure(HttpException err, String errMsg) {
-						Log.d("MUSIC_GET_LRC", "==============GET SONG_LRC FAILED==========="+ errMsg +"==========================");
-						handler.obtainMessage(2, "err").sendToTarget();
-					}
-				});
+			if(url.indexOf("http")==-1){
+				url =  MUSIC_SOURCE_NET + url;
 			}
+			http.download(url, target,true, new RequestCallBack<File>() {
+				@Override
+				public void onSuccess(ResponseInfo<File> resp) {
+					handler.obtainMessage(flag, resp.result.getAbsoluteFile()).sendToTarget();
+				}
+				
+				@Override
+				public void onFailure(HttpException err, String errMsg) {
+					Log.d("MUSIC_GET_LRC", "==============GET SONG_LRC FAILED==========="+ errMsg +"==========================");
+					handler.obtainMessage(flag, "err").sendToTarget();
+				}
+			});
 		}catch(Exception ex){
-			ex.printStackTrace();
+			handler.obtainMessage(flag, "err").sendToTarget();
 		}
 	}
-	
-	private static String getFileName(String url){
-		
-		int index = url.lastIndexOf("/");
-		return url.substring(index+1);
-		
-	}
-	
-	
 }
 	
