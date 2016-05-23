@@ -90,6 +90,7 @@ public class MusicPlayService extends Service {
 		Music m = MusicTools.getMusic(idx);
 		if(m!=null){
 			currentMid = String.valueOf(m.getId());
+			MusicTools.CURRENT_PLAY_SONG = m.getId();
 			initPlay(m.getUrl());
 			
 			Intent intent = new Intent(MusicTools.MUSIC_BORDCAST);

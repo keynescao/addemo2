@@ -1,21 +1,18 @@
 package com.kc.supcattle;
 
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import com.handmark.pulltorefresh.library.PullToRefreshListView;
 import com.kc.supcattle.adpter.MusicListAdapter;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.vo.Music;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v4.app.Fragment;
-import android.util.Log;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,19 +28,28 @@ import android.widget.LinearLayout;
  */
 public class MusicFragment extends Fragment {
 
-	private List<Map<String,String>> musicList = new ArrayList<Map<String,String>>();
 	private PullToRefreshListView mListView;
 	private LinearLayout loadingLayout;
 	private ImageView layoutImg;
 	private MusicListAdapter musicAdatper;
-	private Handler handler;
-	
-	private static boolean isRefreshList = false;
+	private LocalBroadcastManager localBroadCast;
+	private BroadcastReceiver receiver;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		handler = new MsgHandler(this);
+		localBroadCast = LocalBroadcastManager.getInstance(getContext());
+		receiver = new BroadcastReceiver(){
+			public void onReceive(Context context, Intent intent) {
+				int cmd = intent.getIntExtra("cmd", 0);
+				if(cmd == 0 && musicAdatper!=null){
+					musicAdatper.notifyDataSetChanged();
+				}
+			}
+		};
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(MusicTools.MUSIC_BORDCAST);
+		localBroadCast.registerReceiver(receiver, filter);		
 	}
 	
 	
@@ -73,9 +79,8 @@ public class MusicFragment extends Fragment {
 			}
 			
 		});
-
 		
-		loadMusicTask();		
+		new LoadMusicTask().execute();		
 		return view;
 	}
 	
@@ -83,50 +88,36 @@ public class MusicFragment extends Fragment {
 	public void onResume() {
 		super.onResume();
 		if(musicAdatper!=null){
-			musicAdatper.notifyDataSetInvalidated();
+			musicAdatper.notifyDataSetChanged();
 		}
 	}
+	
+	private class LoadMusicTask extends AsyncTask<Void, Void, Void>{
 
-	static class MsgHandler extends Handler{
-		
-		WeakReference<MusicFragment> weekReference;
-
-		public MsgHandler(MusicFragment fragment){
-			this.weekReference = new WeakReference<MusicFragment>(fragment);
+		protected Void doInBackground(Void... params) {
+			if(MusicTools.musicList.size()==0){
+				MusicTools.scanMusic(getContext());
+			}	
+			return null;
 		}
+
+		protected void onPostExecute(Void result) {
+			super.onPostExecute(result);
 			
-		public void handleMessage(Message msg) {
+			musicAdatper = new MusicListAdapter(MusicTools.musicList,MusicFragment.this.getContext());
+			mListView.setAdapter(musicAdatper);
+			mListView.setVisibility(View.VISIBLE);
+			loadingLayout.setVisibility(View.GONE);
+			mListView.onRefreshComplete();
 			
-			MusicFragment t = weekReference.get();
-			if(t==null)return;
-			
-			t.musicAdatper = new MusicListAdapter(MusicTools.musicList,t.getContext());
-			t.mListView.setAdapter(t.musicAdatper);
-			t.mListView.setVisibility(View.VISIBLE);
-			t.loadingLayout.setVisibility(View.GONE);
-			t.mListView.onRefreshComplete();
-			isRefreshList = false;
 		}
 		
-	};
-
-
-	private void loadMusicTask(){
-		Log.d("====SCAN MUSIC====", Thread.currentThread().getName());
-		new Thread(){
-			public void run() {
-				if(MusicTools.musicList.size()==0 || isRefreshList == true){
-					MusicTools.scanMusic(getContext());
-				}				
-				musicList.clear();				
-				handler.sendEmptyMessage(0);
-			}
-		}.start();
 	}
 
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		localBroadCast.unregisterReceiver(receiver);
 	}
 
 }

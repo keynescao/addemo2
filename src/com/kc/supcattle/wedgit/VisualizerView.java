@@ -82,8 +82,8 @@ public class VisualizerView extends View {
     public void updateVisualizer(byte[] fft){
     	if(this.getVisibility() == this.VISIBLE){
     		bytes = fft;
+    		invalidate();
     	}
-    	invalidate();
     }
    
     protected void onDraw(Canvas canvas){
