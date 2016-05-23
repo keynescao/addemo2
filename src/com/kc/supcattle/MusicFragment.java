@@ -9,10 +9,15 @@ import java.util.Map;
 import com.handmark.pulltorefresh.library.ILoadingLayout;
 import com.handmark.pulltorefresh.library.PullToRefreshBase;
 import com.handmark.pulltorefresh.library.PullToRefreshListView;
+import com.kc.supcattle.adpter.MusicListAdapter;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.vo.Music;
+import com.kc.supcattle.wedgit.VisualizerView;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -28,6 +33,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.widget.TextView;
 
 /**
  * 音乐
@@ -39,21 +45,28 @@ public class MusicFragment extends Fragment {
 	private PullToRefreshListView mListView;
 	private LinearLayout loadingLayout;
 	private ImageView layoutImg;
-	private SimpleAdapter simpleAdatper;
+	private MusicListAdapter musicAdatper;
 	private Handler handler;
+	private VisualizerView currSelectView;
+	private TextView textview;
+	
 	private static boolean isRefreshList = false;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		handler = new MsgHandler(this);
+		
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(MusicTools.MUSIC_BORDCAST_PP);
+		getActivity().registerReceiver(receiver, filter);
 	}
 	
 	
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		View view = inflater.inflate(R.layout.main_tab2_fragment, container,false);
+		View view = inflater.inflate(R.layout.music_fragment, container,false);
 
 		loadingLayout = (LinearLayout)view.findViewById(R.id.loading_layout);
 		layoutImg  = (ImageView)view.findViewById(R.id.loading_img);
@@ -65,34 +78,51 @@ public class MusicFragment extends Fragment {
 
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				
-				Map<String,String> data = (Map<String,String>)parent.getItemAtPosition(position);
-				
+
+				Music data = (Music)parent.getItemAtPosition(position);
 				Intent intent = new Intent(getActivity(),MusicPlayActivity.class);
-				intent.putExtra("mid", data.get("mid"));
+				intent.putExtra("mid", String.valueOf(data.getId()));
+				
+				data.setPlaying(true);
+				musicAdatper.notifyDataSetChanged();
+				if(currSelectView!=null)currSelectView.updateVisualizer(null);
+				currSelectView = (VisualizerView)view.findViewById(R.id.music_pp);
+				MusicTools.CURRENT_PLAY_SONG = data.getId();
 				startActivity(intent);
+				
 			}
 			
 		});
 		
-		mListView.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener<ListView>(){
+		/*mListView.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener<ListView>(){
 
 			@Override
 			public void onRefresh(PullToRefreshBase<ListView> refreshView) {
-				isRefreshList = true;
-				loadMusicTask();				
+				//isRefreshList = true;
+				//loadMusicTask();				
 			}
 		});
 		
 		ILoadingLayout  layoutlab =  mListView.getLoadingLayoutProxy(true,false);
 		layoutlab.setPullLabel("下拉刷新...");
 		layoutlab.setRefreshingLabel("加载中...");
-		layoutlab.setReleaseLabel("松开刷新...");
+		layoutlab.setReleaseLabel("松开刷新...");*/
 		
 		loadMusicTask();
 		
 		return view;
 	}
+	
+	
+	BroadcastReceiver receiver = new BroadcastReceiver(){
+		public void onReceive(Context context, Intent intent) {			
+			byte wave[] = intent.getByteArrayExtra("wave");
+			if(wave!=null && currSelectView!=null){
+				currSelectView.updateVisualizer(wave);
+				Log.d("TAG", "============"+MusicTools.CURRENT_PLAY_SONG+"============"+currSelectView.isPlaying());
+			}
+		}
+	};
 
 	static class MsgHandler extends Handler{
 		
@@ -107,15 +137,8 @@ public class MusicFragment extends Fragment {
 			MusicFragment t = weekReference.get();
 			if(t==null)return;
 			
-			t.simpleAdatper = new SimpleAdapter(t.getContext(), t.musicList,R.layout.music_item,new String[]{
-					"name","artist","duration"
-			},new int[]{
-					R.id.music_name,
-					R.id.music_artist,
-					R.id.music_duration
-			});
-			
-			t.mListView.setAdapter(t.simpleAdatper);
+			t.musicAdatper = new MusicListAdapter(MusicTools.musicList,t.getContext());
+			t.mListView.setAdapter(t.musicAdatper);
 			t.mListView.setVisibility(View.VISIBLE);
 			t.loadingLayout.setVisibility(View.GONE);
 			t.mListView.onRefreshComplete();
@@ -132,22 +155,17 @@ public class MusicFragment extends Fragment {
 				if(MusicTools.musicList.size()==0 || isRefreshList == true){
 					MusicTools.scanMusic(getContext());
 				}				
-				musicList.clear();
-				for(Music m : MusicTools.musicList){
-					Map<String,String> data = new HashMap<String,String>();
-					data.put("name", m.getTitle());
-					data.put("artist", m.getArtist());
-					data.put("duration", MusicTools.getDuration(m.getDuration()));
-					data.put("mid", String.valueOf(m.getId()));
-					musicList.add(data);
-				}
+				musicList.clear();				
 				handler.sendEmptyMessage(0);
-
 			}
 		}.start();
 	}
 
-
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		getActivity().unregisterReceiver(receiver);
+	}
 
 	/*private void scanMusic(String path){
 		File file = new File(path);

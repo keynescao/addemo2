@@ -33,7 +33,12 @@ public class MusicTools {
 	private static Map<String,String> idxMap = new HashMap<String,String>();
 	
 	public static int CURRENT_PLAYING = 0;//0 未播放，1播放
+	
+	public static int CURRENT_PLAY_SONG = -1; //当前播放歌曲编号
+	
 	public final static String MUSIC_BORDCAST = "music.bordercast";
+	
+	public final static String MUSIC_BORDCAST_PP = "music.bordercast.pp";
 	
 	private final static String MUSIC_NET_GET_URL = "http://tingapi.ting.baidu.com/v1/restserver/ting?from=qianqian&version=2.1.0&method=baidu.ting.search.common&format=json&page_no=1&page_size=1";
 	

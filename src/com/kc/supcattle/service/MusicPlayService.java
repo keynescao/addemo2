@@ -9,6 +9,7 @@ import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.media.MediaPlayer.OnPreparedListener;
+import android.media.audiofx.Visualizer;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -17,6 +18,7 @@ public class MusicPlayService extends Service {
 	private MediaPlayer mp;
 	private String currentMid;
 	private boolean TASK_RUN = true;
+	private Visualizer  visualizer;
 	
 	@Override
 	public void onCreate() {
@@ -46,6 +48,34 @@ public class MusicPlayService extends Service {
 				return true;
 			}
 		});
+		
+		visualizer = new Visualizer(mp.getAudioSessionId());	
+		visualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[0]);
+		visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener(){
+			public void onWaveFormDataCapture(Visualizer visualizer, byte[] waveform, int samplingRate) {}
+
+			@Override
+			public void onFftDataCapture(Visualizer visualizer, byte[] fft, int samplingRate) {
+				
+				byte[] model = new byte[fft.length / 2 + 1];
+				model[0] = (byte) Math.abs(fft[1]);
+				int j = 1;
+
+				for (int i = 2; i < 18;) {
+					model[j] = (byte) Math.hypot(fft[i], fft[i + 1]);
+					i += 2;
+					j++;
+				}
+
+				Intent intent = new Intent(MusicTools.MUSIC_BORDCAST_PP);
+				intent.putExtra("wave", model);
+				sendBroadcast(intent);	
+			}
+			
+		}, Visualizer.getMaxCaptureRate() / 2, false, true);
+		visualizer.setEnabled(true);
+		
+		
 		new Thread(updateSeek).start();
 	}
 	
@@ -155,6 +185,7 @@ public class MusicPlayService extends Service {
 			if(mp.isPlaying())mp.stop();
 			mp.release();
 		}
+		visualizer.release();
 		MusicTools.CURRENT_PLAYING = 0;
 		TASK_RUN = false;
 		stopSelf();

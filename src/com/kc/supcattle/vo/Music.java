@@ -12,6 +12,7 @@ public class Music {
 	private int duration;
 	private int size;
 	private int hashCode;
+	private boolean playing = false;
 	
 	
 	public int getId() {
@@ -74,6 +75,13 @@ public class Music {
 	}
 	public void setHashCode(int hashCode) {
 		this.hashCode = hashCode;
+	}
+	
+	public boolean isPlaying() {
+		return playing;
+	}
+	public void setPlaying(boolean playing) {
+		this.playing = playing;
 	}
 	@Override
 	public String toString() {
