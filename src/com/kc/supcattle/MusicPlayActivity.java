@@ -196,6 +196,8 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		musicLte.setText("00:00");
 		musicRte.setText(MusicTools.getDuration(music.getDuration()));
 		
+		MusicTools.CURRENT_PLAY_SONG = music.getId();
+		
 		//先读取内置图片，读不到则从网络取
 		Bitmap bitmap = MusicTools.getAlbumBitmap(this,music.getAlbumId());
  		if(bitmap !=null){

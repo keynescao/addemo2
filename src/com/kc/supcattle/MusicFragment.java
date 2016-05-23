@@ -68,7 +68,6 @@ public class MusicFragment extends Fragment {
 				intent.putExtra("mid", String.valueOf(data.getId()));
 
 				MusicTools.CURRENT_PLAY_SONG = data.getId();
-				musicAdatper.notifyDataSetInvalidated();
 				startActivity(intent);
 				
 			}
@@ -76,9 +75,16 @@ public class MusicFragment extends Fragment {
 		});
 
 		
-		loadMusicTask();
-		
+		loadMusicTask();		
 		return view;
+	}
+	
+	@Override
+	public void onResume() {
+		super.onResume();
+		if(musicAdatper!=null){
+			musicAdatper.notifyDataSetInvalidated();
+		}
 	}
 
 	static class MsgHandler extends Handler{
