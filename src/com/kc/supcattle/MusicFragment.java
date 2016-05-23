@@ -5,6 +5,7 @@ import com.kc.supcattle.adpter.MusicListAdapter;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.vo.Music;
 
+import android.content.AsyncTaskLoader;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -52,6 +53,11 @@ public class MusicFragment extends Fragment {
 		localBroadCast.registerReceiver(receiver, filter);		
 	}
 	
+	@Override
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+		new LoadMusicTask().execute();
+	}
 	
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -80,7 +86,6 @@ public class MusicFragment extends Fragment {
 			
 		});
 		
-		new LoadMusicTask().execute();		
 		return view;
 	}
 	
@@ -113,6 +118,7 @@ public class MusicFragment extends Fragment {
 		}
 		
 	}
+
 
 	@Override
 	public void onDestroy() {
