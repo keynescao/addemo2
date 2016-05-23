@@ -34,7 +34,6 @@ public class DownFragment extends Fragment {
 		View view = inflater.inflate(R.layout.main_tab3_fragment, container,false);
 		
 		currSelectView = (VisualizerView)view.findViewById(R.id.music_pp_demo);
-		currSelectView.setPlaying(true);
 		return view;
 	}
 	

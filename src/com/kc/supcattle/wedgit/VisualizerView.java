@@ -1,10 +1,16 @@
 package com.kc.supcattle.wedgit;
 
+import com.kc.supcattle.utils.MusicTools;
+
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.support.v4.content.LocalBroadcastManager;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.View;
@@ -21,42 +27,61 @@ public class VisualizerView extends View {
     private Rect rect = new Rect();
     private float []mPoints;
     private int pointNum = 9;
-    private boolean playing = false;
+    private Context mContext;
+    private LocalBroadcastManager localBroadCast;
+	private BroadcastReceiver receiver;
     
     public VisualizerView(Context context, AttributeSet attrs) {
 		super(context, attrs);
-		initView();
+		initView(context);
 	}
 
 	public VisualizerView(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
-		initView();
+		initView(context);
 	}
     
     public VisualizerView(Context context){
         super(context);
-        initView();
+        initView(context);
     }
     
-    private void initView(){
+    private void initView(Context mContext){
     	bytes = null;
         // 设置画笔的属性
         paint.setStrokeWidth(8f);
         paint.setAntiAlias(true);//抗锯齿
         paint.setColor(Color.WHITE);//画笔颜色
         paint.setStyle(Style.FILL);
+        
+        localBroadCast = LocalBroadcastManager.getInstance(mContext);
+        receiver = new BroadcastReceiver(){
+    		public void onReceive(Context context, Intent intent) {
+    			
+    			int cmd = intent.getIntExtra("cmd", 0);
+    			if(cmd == 2){
+    				byte wave[] = intent.getByteArrayExtra("wave");
+    				if(wave!=null){
+    					updateVisualizer(wave);
+    				}
+    			}
+    		}
+    	};
+    	
+        IntentFilter filter = new IntentFilter();
+		filter.addAction(MusicTools.MUSIC_BORDCAST);
+		localBroadCast.registerReceiver(receiver, filter);
+        
     }
 
 	protected void onDetachedFromWindow() {
 		super.onDetachedFromWindow();
+		localBroadCast.unregisterReceiver(receiver);
 	};
 	
     public void updateVisualizer(byte[] fft){
-    	if(playing){
-	        bytes = fft;  
-	        // 通知该组件重绘自己。
-    	}else{
-    		bytes = null;
+    	if(this.getVisibility() == this.VISIBLE){
+    		bytes = fft;
     	}
     	invalidate();
     }
@@ -94,14 +119,4 @@ public class VisualizerView extends View {
         //}   
     }
 
-	public boolean isPlaying() {
-		return playing;
-	}
-
-	public void setPlaying(boolean playing) {
-		this.playing = playing;
-	}
-    
-    
-    
 }

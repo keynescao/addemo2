@@ -11,6 +11,7 @@ import android.media.MediaPlayer.OnErrorListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.media.audiofx.Visualizer;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 public class MusicPlayService extends Service {
@@ -19,10 +20,14 @@ public class MusicPlayService extends Service {
 	private String currentMid;
 	private boolean TASK_RUN = true;
 	private Visualizer  visualizer;
+	private LocalBroadcastManager localBroadCast;
 	
 	@Override
 	public void onCreate() {
 		super.onCreate();
+		
+		localBroadCast = LocalBroadcastManager.getInstance(this);
+		
 		mp = new MediaPlayer();	
 		mp.setOnPreparedListener(new OnPreparedListener() {
 			@Override
@@ -67,9 +72,10 @@ public class MusicPlayService extends Service {
 					j++;
 				}
 
-				Intent intent = new Intent(MusicTools.MUSIC_BORDCAST_PP);
+				Intent intent = new Intent(MusicTools.MUSIC_BORDCAST);
+				intent.putExtra("cmd", 2);
 				intent.putExtra("wave", model);
-				sendBroadcast(intent);	
+				localBroadCast.sendBroadcast(intent);	
 			}
 			
 		}, Visualizer.getMaxCaptureRate() / 2, false, true);
@@ -89,7 +95,7 @@ public class MusicPlayService extends Service {
 			Intent intent = new Intent(MusicTools.MUSIC_BORDCAST);
 			intent.putExtra("cmd", 0);
 			intent.putExtra("mid", currentMid);
-			sendBroadcast(intent);
+			localBroadCast.sendBroadcast(intent);
 		}		
 	}
 
@@ -108,7 +114,7 @@ public class MusicPlayService extends Service {
 					Intent msg = new Intent(MusicTools.MUSIC_BORDCAST);
 					msg.putExtra("cmd", 1);
 					msg.putExtra("seek", mp.getCurrentPosition());
-					sendBroadcast(msg);
+					localBroadCast.sendBroadcast(msg);
 				}
 			}
 		}else if(cmd == 1){
@@ -165,7 +171,7 @@ public class MusicPlayService extends Service {
 					Intent msg = new Intent(MusicTools.MUSIC_BORDCAST);
 					msg.putExtra("cmd", 1);
 					msg.putExtra("seek", mp.getCurrentPosition());
-					sendBroadcast(msg);
+					localBroadCast.sendBroadcast(msg);
 				}
 				try {
 					Thread.sleep(900);

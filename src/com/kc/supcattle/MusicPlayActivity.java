@@ -19,6 +19,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -42,6 +43,8 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 	private BitmapUtils bitmapUtil;
 	private LrcView mLrc;
 	private Handler handler;
+	private LocalBroadcastManager localBroadCast;
+	BroadcastReceiver receiver;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +52,7 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		setContentView(R.layout.music_layout);
 		
 		handler = new PlayHandler(this);
+		localBroadCast = LocalBroadcastManager.getInstance(this);
 		
 		mPlayBtn = (ImageView)findViewById(R.id.music_play);
 		mNextBtn  = (ImageView)findViewById(R.id.music_next);
@@ -93,9 +97,23 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 			}
 		});
 					
+		receiver = new BroadcastReceiver(){
+			public void onReceive(Context context, Intent intent) {
+				int cmd = intent.getIntExtra("cmd", 0);
+				if(cmd == 0){
+					changeSongDetail(intent.getStringExtra("mid"));
+				}else if(cmd == 1){
+					int progress = intent.getIntExtra("seek", 0);
+					musicLte.setText(MusicTools.getDuration(progress));
+					musicSeekBar.setProgress(progress);
+					mLrc.changeCurrent(progress);
+				}
+			}
+		};
+		
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(MusicTools.MUSIC_BORDCAST);
-		registerReceiver(receiver, filter);		
+		localBroadCast.registerReceiver(receiver, filter);		
 		
 		initPlayService();
 		
@@ -157,21 +175,7 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 		intentmusic.putExtra("mid", mid);
 		startService(intentmusic);		
 	}
-	
-	BroadcastReceiver receiver = new BroadcastReceiver(){
-		public void onReceive(Context context, Intent intent) {
-			int cmd = intent.getIntExtra("cmd", 0);
-			if(cmd == 0){
-				changeSongDetail(intent.getStringExtra("mid"));
-			}else if(cmd == 1){
-				int progress = intent.getIntExtra("seek", 0);
-				musicLte.setText(MusicTools.getDuration(progress));
-				musicSeekBar.setProgress(progress);
-				mLrc.changeCurrent(progress);
-			}
-		}
-	};
-	
+		
 	private void changeSong(int flag){
 		mPlayBtn.setImageResource(R.drawable.ic_pause);
 		Intent intentmusic = new Intent(this,MusicPlayService.class);
@@ -234,7 +238,7 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		unregisterReceiver(receiver);
+		localBroadCast.unregisterReceiver(receiver);
 		if(MusicTools.CURRENT_PLAYING == 0){
 			Intent intentmusic = new Intent(this,MusicPlayService.class);
 			stopService(intentmusic);

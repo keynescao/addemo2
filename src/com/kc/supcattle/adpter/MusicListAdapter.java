@@ -60,9 +60,11 @@ public class MusicListAdapter extends BaseAdapter {
         tag.musicName.setText(m.getTitle());
         tag.artist.setText(m.getArtist());
         tag.druation.setText(MusicTools.getDuration(m.getDuration()));
-        tag.visua.setPlaying(MusicTools.CURRENT_PLAY_SONG == m.getId());
-        Log.d("TAG", "============"+MusicTools.CURRENT_PLAY_SONG +"========="+m.getId());
-        
+        if(MusicTools.CURRENT_PLAY_SONG == m.getId()){
+        	tag.visua.setVisibility(View.VISIBLE);
+        }else{
+        	tag.visua.setVisibility(View.GONE);
+        }
 		return convertView;
 	}
 
