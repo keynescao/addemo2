@@ -128,9 +128,8 @@ public class MusicPlayActivity extends Activity implements OnClickListener{
 				if(!path.equals(StringUtil.ERR_FLAG)){
 					Bitmap bitmap = BitmapFactory.decodeFile(String.valueOf(msg.obj));
 					act.playback.setBackground(new BitmapDrawable(act.getResources(),bitmap));
-					
-					
-					//act.playback.setBackground(background);
+				}else{
+					act.playback.setBackgroundResource(R.drawable.bg);
 				}
 			}else if(msg.what == 2){
 				String path = String.valueOf(msg.obj);
