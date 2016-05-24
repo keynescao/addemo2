@@ -27,7 +27,6 @@ public class VisualizerView extends View {
     private Rect rect = new Rect();
     private float []mPoints;
     private int pointNum = 9;
-    private Context mContext;
     private LocalBroadcastManager localBroadCast;
 	private BroadcastReceiver receiver;
     

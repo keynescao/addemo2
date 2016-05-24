@@ -5,7 +5,6 @@ import com.kc.supcattle.adpter.MusicListAdapter;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.vo.Music;
 
-import android.content.AsyncTaskLoader;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
