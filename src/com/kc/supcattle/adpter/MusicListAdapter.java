@@ -1,12 +1,13 @@
 package com.kc.supcattle.adpter;
 
 import java.util.List;
+
 import com.kc.supcattle.R;
 import com.kc.supcattle.utils.MusicTools;
 import com.kc.supcattle.vo.Music;
 import com.kc.supcattle.wedgit.VisualizerView;
+
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,13 +17,11 @@ import android.widget.TextView;
 public class MusicListAdapter extends BaseAdapter {
 
 	private List<Music> data;
-    private Context mContext;
     private LayoutInflater layoutInflater;
     
     
     public MusicListAdapter(List<Music> list, Context mContext){
         this.data = list;
-        this.mContext = mContext;
         this.layoutInflater = LayoutInflater.from(mContext);
     }
 
